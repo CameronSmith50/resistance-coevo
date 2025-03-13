@@ -342,7 +342,7 @@ def initialClassify(saveDataDir, c1min=0.0, c1max=1.0, c2min=-5.0, c2max=5.0, n=
             f.write(f'c1max={c1max}\n')
             f.write(f'c2min={c2min}\n')
             f.write(f'c2max={c2max}\n')
-            f.write(f'nLevel1={n}\n')
+            f.write(f'nLevel1={n}')
         
         # Generate the c1 and c2 vectors
         c1vec = np.linspace(c1min, c1max, n)
@@ -562,7 +562,7 @@ def plottingClassify(dataDir):
 
     # Check if the data directory exists
     if not os.path.isdir(dataDir):
-        print('No such directory. Please check you have written your input correcyly, or ran initialClassify to get some data.')
+        print(f'No such directory at {dataDir}. Please check you have written your input correctly, or ran initialClassify to get some data.')
     else:
 
         # Extract the dataframe and the parameters
@@ -744,13 +744,13 @@ def plottingClassify(dataDir):
 
         axC[-1].text(0.06, -1.4, 'Symbiont\nbranching', ha='center', va='center', rotation=80, size=48)
         axC[-1].text(0.3, 0.0, 'Possible parasite\nextinction', ha='center', va='center', size=48)
-        axC[-1].text(0.85, 0, 'Possible\nsymbiont\nextinction', ha='center', va='center', size=48)
-        axC[-1].text(0.6, -1.0, 'Guaranteed\ncoexistence', ha='center', va='center', rotation=270, size=48)
+        axC[-1].text(0.92, -0.2, 'Possible\nsymbiont\nextinction', ha='center', va='center', size=48)
+        axC[-1].text(0.68, 0.0, 'Guaranteed\ncoexistence', ha='center', va='center', rotation=270, size=48)
 
-        c1Vec = [0.625, 0.45, 0.1, 0.65]
-        c2Vec = [-4.5, -2.0, 3.5, 3.0]
+        c1Vec = [0.15, 0.75, 0.3, 0.75]
+        c2Vec = [4, 4, -4, -4]
         for ii in range(len(c1Vec)):
-            axC[-1].plot(c1Vec[ii], c2Vec[ii], 'kx', ms=20)
+            axC[-1].plot(c1Vec[ii], c2Vec[ii], 'kx', mew=5, ms=20)
 
         # Next we plot the evolutionary simulations
         axD[-1].pcolormesh(np.log(resistance_vector+1), time_vec, D, cmap='Greys')
@@ -787,29 +787,26 @@ def plottingClassify(dataDir):
 
         # Finally add labels
         axC[-1].text(0, 5.25,'A.', fontsize=fsize)
-        axD[-1].text(0, 1.05*max(time_vec), 'B.', fontsize=fsize)
-        axP[-1].text(0, 1.05*max(time_vec), 'C.', fontsize=fsize)
+        axD[-1].text(0, 1.025*max(time_vec), 'B.', fontsize=fsize)
+        axP[-1].text(0, 1.025*max(time_vec), 'C.', fontsize=fsize)
 
+        print('D. Blue:  Minimiser')
+        print('L. Blue:  Maximiser')
+        print('D. Green: CSS')
+        print('L. Green: Repeller')
+        print('Orange:   Branching')
 
-    print('D. Blue:  Minimiser')
-    print('L. Blue:  Maximiser')
-    print('D. Green: CSS')
-    print('L. Green: Repeller')
-    print('Orange:   Branching')
-
-    # Saving the figure
-    saveDir = dataDir.split('/')
-    saveDir[1] = 'results'
-    saveDir = '/'.join(saveDir)
-    if not os.path.isdir(saveDir):
-        os.makedirs(saveDir)
-    figs[-1].savefig(saveDir + 'classification.png', bbox_inches = 'tight')
+        # Saving the figure
+        saveDir = dataDir.split('/')
+        saveDir[1] = 'results'
+        saveDir = '/'.join(saveDir)
+        if not os.path.isdir(saveDir):
+            os.makedirs(saveDir)
+        figs[-1].savefig(saveDir + 'classification.png', bbox_inches = 'tight')
 
     # plt.show()
 
 if __name__ == '__main__':
-
-    print(sys.argv)
 
     # If no task, send a message to the console
     if len(sys.argv) == 1:
