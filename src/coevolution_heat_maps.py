@@ -188,8 +188,8 @@ def trajectoryHeatMap(
 if __name__ == '__main__':
 
     # Choose your vectors for c1 and c2
-    c1Vec = [0.625, 0.45, 0.1, 0.65]
-    c2Vec = [-4.5, -2.0, 3.5, 3.0]
+    c1Vec = [0.15, 0.75, 0.3, 0.75]
+    c2Vec = [4, 4, -4, -4]
 
     # Run the data
     trajectoryHeatMap(c1Vec, c2Vec)
