@@ -18,16 +18,17 @@ def set_default_ode_parameters():
     """Return ODE parameters with default values"""
     RESISTANCE = 0.5
     MAX_PER_CAPITA_BIRTH_RATE = 1.0
-    NATURAL_MORTALITY_RATE = 0.5#0.25
+    NATURAL_MORTALITY_RATE = 0.1#0.25
     DEF_SYMBIONT_COST_STRENGTH = 0.1#0.25
-    DEF_SYMBIONT_COST_SHAPE = 2.0
+    DEF_SYMBIONT_COST_SHAPE = -2.0
     POWER_LAW = 0.5
-    DENSITY_DEPENDENT_COMPETITION_STRENGTH = 0.5#0.25
-    ADDITIONAL_MORTALITY_RATE_DEF_SYMBIONT = 0.1
+    DENSITY_DEPENDENT_COMPETITION_STRENGTH = 1.0#0.25
+    ADDITIONAL_MORTALITY_RATE_DEF_SYMBIONT = 0.2
     MAX_TRANSMISSION_RATE_DEF_SYMBIONT = 5.0#1.0
     TRANSMISSION_RATE_PARASITE_SCALING_CONST = 5.0#2.0
-    RECOVERY_RATE_DEF_SYMBIONT = 0.1#0.05
-    RECOVERY_RATE_PARASITE = 0.1#0.05
+    RECOVERY_RATE_DEF_SYMBIONT = 0.3#0.25
+    RECOVERY_RATE_PARASITE = 0.3#0.25
+    PROPORTION_SYMBIONT_VERTICAL_TRANSMISSION = 0.0
     
     ode_parameters = {
         'alpha_P': np.nan,
@@ -42,7 +43,8 @@ def set_default_ode_parameters():
         'beta_hat_D': MAX_TRANSMISSION_RATE_DEF_SYMBIONT,
         'beta_hat_P': TRANSMISSION_RATE_PARASITE_SCALING_CONST,
         'gamma_D': RECOVERY_RATE_DEF_SYMBIONT,
-        'gamma_P': RECOVERY_RATE_PARASITE
+        'gamma_P': RECOVERY_RATE_PARASITE,
+        'rho': PROPORTION_SYMBIONT_VERTICAL_TRANSMISSION
     }
     ode_parameters['alpha_P'] = compute_ancestral_virulence(ode_parameters)
 
@@ -83,14 +85,15 @@ def make_system(ode_parameters):
         beta_hat_D=ode_parameters['beta_hat_D'],
         beta_hat_P=ode_parameters['beta_hat_P'],
         gamma_D=ode_parameters['gamma_D'],
-        gamma_P=ode_parameters['gamma_P']
+        gamma_P=ode_parameters['gamma_P'],
+        rho=ode_parameters['rho']
     ):
         """RHS of resident population dynamics"""
 
         # Model parameters
         H, D, P, B = y      # classes
         N = H + D + P + B   # total host population
-        nu = N*(a-q*N)      # birth rate of new hosts    
+        nu = (H+P+(1-rho)*(D+B))*(a-q*N)      # birth rate of new hosts    
 
         alpha_B = build_alpha_B()
         beta_P = build_beta_P(beta_hat_P, d)
@@ -98,7 +101,7 @@ def make_system(ode_parameters):
         
         # System of ODEs
         dH = nu - (b + beta_D(resistance)*(D + B) + beta_P(alpha_P)*(P + B))*H + gamma_D*D + gamma_P*P
-        dD = beta_D(resistance)*H*(D + B) - (b + gamma_D + alpha_D + beta_P(alpha_P)*(1-resistance)*(P + B))*D + gamma_P*B
+        dD = rho*(D+B)*(b-q*N) + beta_D(resistance)*H*(D + B) - (b + gamma_D + alpha_D + beta_P(alpha_P)*(1-resistance)*(P + B))*D + gamma_P*B
         dP = beta_P(alpha_P)*H*(P + B) - (b + gamma_P + alpha_P + beta_D(resistance)*(D + B))*P + gamma_D*B
         dB = beta_D(resistance)*P*(D + B) + beta_P(alpha_P)*(1-resistance)*D*(P + B) - (b + alpha_B(alpha_D,alpha_P) + gamma_D + gamma_P)*B
         
@@ -124,7 +127,8 @@ def make_discretized_system(ode_parameters):
         beta_hat_D=ode_parameters['beta_hat_D'],
         beta_hat_P=ode_parameters['beta_hat_P'],
         gamma_D=ode_parameters['gamma_D'],
-        gamma_P=ode_parameters['gamma_P']
+        gamma_P=ode_parameters['gamma_P'],
+        rho=ode_parameters['rho']
     ):
         """
         Right-hand side of discretized population dynamics.
@@ -144,15 +148,15 @@ def make_discretized_system(ode_parameters):
         P = state[2:number_of_present_virulence_values+2] # is of length number_of_present_virulence_values
         B = state[number_of_present_virulence_values+2:]  # is of length number_of_present_virulence_values
         N = H + D + np.sum(P) + np.sum(B)
-        nu = N*(a-q*N)
+        nu = (H+np.sum(P)+(1-rho)*(D+np.sum(B)))*(a-q*N)
 
         alpha_B = build_alpha_B()
         beta_P = build_beta_P(beta_hat_P, d)
         beta_D = build_beta_D(beta_hat_D, c1, c2)
         alpha_D_vector = np.full(shape=(number_of_present_virulence_values,), fill_value=alpha_D)
         
-        dH = nu - ( b + beta_D(resistance)*(D + np.sum(B)) + np.sum(beta_P(present_virulence_values)*(P + B)) )*H + gamma_D*D + gamma_P*np.sum(P)
-        dD = beta_D(resistance)*H*(D + np.sum(B)) - ( b + gamma_D + alpha_D + np.sum(beta_P(present_virulence_values)*(1-resistance)*(P + B)) )*D + gamma_P*np.sum(B)
+        dH = nu - (b + beta_D(resistance)*(D + np.sum(B)) + np.sum(beta_P(present_virulence_values)*(P + B)) )*H + gamma_D*D + gamma_P*np.sum(P)
+        dD = rho*(D+np.sum(B))*(b-q*N) + beta_D(resistance)*H*(D + np.sum(B)) - ( b + gamma_D + alpha_D + np.sum(beta_P(present_virulence_values)*(1-resistance)*(P + B)) )*D + gamma_P*np.sum(B)
         dP = beta_P(present_virulence_values)*H*(P + B) - ( b + gamma_P + present_virulence_values + beta_D(resistance)*(D + np.sum(B)) )*P + gamma_D*B
         dB = beta_D(resistance)*P*(D + np.sum(B)) + beta_P(present_virulence_values)*(1-resistance)*D*(P + B) - (b + alpha_B(alpha_D_vector,present_virulence_values) + gamma_D + gamma_P)*B
 
@@ -177,7 +181,8 @@ def make_discretized_system_coevolution(ode_parameters):
         beta_hat_D=ode_parameters['beta_hat_D'],
         beta_hat_P=ode_parameters['beta_hat_P'],
         gamma_D=ode_parameters['gamma_D'],
-        gamma_P=ode_parameters['gamma_P']
+        gamma_P=ode_parameters['gamma_P'],
+        rho=ode_parameters['rho']
     ):
         """
         Right-hand side of discretized population dynamics.
@@ -206,7 +211,7 @@ def make_discretized_system_coevolution(ode_parameters):
         sum_D = np.sum(D); sum_P = np.sum(P); sum_B = np.sum(B)
 
         N = H + sum_D + sum_P + sum_B
-        nu = N*(a-q*N)
+        nu = (H + sum_P + (1-rho)*(sum_D+sum_B))*(a-q*N)
 
         alpha_B = build_alpha_B()
         beta_P = build_beta_P(beta_hat_P, d)
@@ -219,14 +224,18 @@ def make_discretized_system_coevolution(ode_parameters):
         sum_B_rows = np.sum(B, rows)
         sum_B_columns = np.sum(B, columns)
 
+        # print((present_resistance_values, present_virulence_values, len(sum_B_rows), len(sum_B_columns)))
+
         dH = nu - ( b + np.sum(beta_D(present_resistance_values)*(D + sum_B_columns)) + np.sum(beta_P(present_virulence_values)*(P + sum_B_rows)) )*H + gamma_D*sum_D + gamma_P*sum_P
-        dD = beta_D(present_resistance_values)*H*(D + sum_B_columns) - ( b + gamma_D + alpha_D + (1-present_resistance_values)*np.sum(beta_P(present_virulence_values)*(P + sum_B_rows)) )*D + gamma_P*sum_B_columns
+
+        dD = rho*(D+sum_B_columns)*(b-q*N) + beta_D(present_resistance_values)*H*(D + sum_B_columns) - ( b + gamma_D + alpha_D + (1-present_resistance_values)*np.sum(beta_P(present_virulence_values)*(P + sum_B_rows)) )*D + gamma_P*sum_B_columns
+
         dP = beta_P(present_virulence_values)*H*(P + sum_B_rows) - ( b + gamma_P + present_virulence_values + np.sum(beta_D(present_resistance_values)*(D + sum_B_columns)) )*P + gamma_D*sum_B_rows
         dB = np.reshape(beta_D(present_resistance_values)*(D + sum_B_columns), (number_of_present_resistance_values, 1))*P \
             + beta_P(present_virulence_values)*(P + sum_B_rows)*np.reshape(D*(1 - present_resistance_values), (number_of_present_resistance_values,1)) \
             - (b + alpha_B_matrix + gamma_D + gamma_P)*B
+        
         dB = np.reshape(dB, (number_of_present_resistance_values*number_of_present_virulence_values,))
-
         return np.hstack((dH, dD, dP, dB))
     return discretized_system_coevolution
 
@@ -349,7 +358,8 @@ def run_ode_solver(ode_parameters, system):
         ode_parameters['beta_hat_D'],
         ode_parameters['beta_hat_P'],
         ode_parameters['gamma_D'],
-        ode_parameters['gamma_P']
+        ode_parameters['gamma_P'],
+        ode_parameters['rho']
     ))
     Ht, Dt, Pt, Bt = soln.y
 
@@ -402,38 +412,22 @@ def run_ode_solver_on_discretized_system_coevolution(ode_parameters, system, ini
     initial_state is a tuple of size (len(present_resistance_values)+1)*(len(present_virulence_values)+1)
     """
     t_span = (0, 100)
-    times = np.linspace(t_span[0], t_span[1], 1001)
     dt = 1e-1
-    
-    # soln = solve_ivp(system, t_span, initial_state, t_eval=times, args=(
-    #     present_virulence_values,
-    #     present_resistance_values,
-    #     ode_parameters['c1'],
-    #     ode_parameters['a'],
-    #     ode_parameters['b'],
-    #     ode_parameters['c2'],
-    #     ode_parameters['d'],
-    #     ode_parameters['q'],
-    #     ode_parameters['alpha_D'],
-    #     ode_parameters['beta_hat_D'],
-    #     ode_parameters['beta_hat_P'],
-    #     ode_parameters['gamma_D'],
-    #     ode_parameters['gamma_P'],
-    # ))
-    # discrete_time_series = soln.y
 
     discrete_time_series = []
     state = initial_state
     discrete_time_series.append(state)
+    tVec = [0]
     tInd = 0
     t = 0
     while t <= t_span[1]:
         dt, state = rk45update(ode_parameters, system, t, state, present_virulence_values, present_resistance_values, dt)
         t += dt
+        tVec.append(t)
         discrete_time_series.append(state)
     discrete_time_series = np.array(discrete_time_series).transpose()
 
-    return discrete_time_series
+    return discrete_time_series, tVec
 
 def approximate_steady_state(Ht, Dt, Pt, Bt):
     """Take final population densities as an approximation for the steady state"""
@@ -721,7 +715,7 @@ def test():
     print("Initial state filtered for initialized virulence values:\n", initial_state)
 
     print("Running ODE solver on discretized system...")
-    discrete_time_series = run_ode_solver_on_discretized_system_coevolution(ode_parameters, discrete_system, initial_state, present_virulence_values, present_resistance_values)
+    discrete_time_series, tVec = run_ode_solver_on_discretized_system_coevolution(ode_parameters, discrete_system, initial_state, present_virulence_values, present_resistance_values)
     discrete_Ht, discrete_Dt, discrete_Pt, discrete_Bt = discrete_time_series
     
     print("Approximating steady state...")
@@ -732,13 +726,15 @@ def test():
     system = make_system(ode_parameters)
     Ht, Dt, Pt, Bt = run_ode_solver(ode_parameters, system)
 
+    print(len(discrete_Ht))
+
     print("Plotting time series...")
     times = np.linspace(0, 100, 100)
     fig, (ax1, ax2) = plt.subplots(2, 1, sharex='col', sharey='row')
-    ax1.plot(times, discrete_Ht, label='H')
-    ax1.plot(times, discrete_Dt, label='D')
-    ax1.plot(times, discrete_Pt, label='P')
-    ax1.plot(times, discrete_Bt, label='B')
+    ax1.plot(tVec, discrete_Ht, label='H')
+    ax1.plot(tVec, discrete_Dt, label='D')
+    ax1.plot(tVec, discrete_Pt, label='P')
+    ax1.plot(tVec, discrete_Bt, label='B')
     ax1.set(title='discrete')
     ax2.plot(times, Ht)
     ax2.plot(times, Dt)
