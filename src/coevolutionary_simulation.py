@@ -145,7 +145,7 @@ def coevolutionary_simulation(
         initial_state_filtered = np.hstack((uninfected, harbouring_present_defensive_symbiont, infected_with_present_parasite_strain, harbouring_both_present_microbes))
 
         # Run population dynamics
-        solution_time_series = run_ode_solver_on_discretized_system_coevolution(ode_parameters_copy, system, initial_state_filtered, present_virulence_values, present_resistance_values)
+        solution_time_series, tVec = run_ode_solver_on_discretized_system_coevolution(ode_parameters_copy, system, initial_state_filtered, present_virulence_values, present_resistance_values)
         steady_state_approximation = solution_time_series[:, -1]
 
         uninfected = steady_state_approximation[0]
