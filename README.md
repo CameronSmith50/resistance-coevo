@@ -59,24 +59,24 @@ For an initial classification (this needs to be done first) we would write the
 following into our console:
 
 ```sh
-python src/classification.py initial directory 21
+python src/classification.py initial directory/ 11
 ```
-This will generate a 21x21 initial classification, saving the data in the
+This will generate a 11x11 initial classification, saving the data in the
 `data/directory/` folder. Both the directory and number may be changed.
 
 To refine the classification, we take a previous classification directory, and
-them double the resolution in both c1 and c2. This is done in the following way:
+then double the resolution in both c1 and c2. This is done in the following way:
 
 ```sh
-python src/classification.py refine directory
+python src/classification.py refine directory/
 ```
 
-where `/data/directory/` is a folder previously initialised and/or refined data.
+where `/data/directory/`is a folder previously initialised and/or refined data.
 
 Finally, we are able to plot the classification via the following:
 
 ```sh
-python src/classification.py plot directory
+python src/classification.py plot directory/
 ```
 
 where again the folder at `data/directory/` contains classification data. This
@@ -101,7 +101,7 @@ where the date-time is replaced by the timestamp on the computer. To plot any
 generated data, we use
 
 ```sh
-python src/plot_heat_maps.py traj_20YY-MM-DD_00h00m00s
+python src/plot_heat_maps.py traj_20YY-MM-DD_00h00m00s/
 ```
 
 where the directory is one containing data. Note that this may be a little slow
